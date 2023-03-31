@@ -4,3 +4,4 @@ Implementation of Continual Learning Algorithms and Papers
 ### Regularization-based
 
 1. 2017 - PNAS - EWC - Overcoming catastrophic forgetting in neural networks [[paper]](https://arxiv.org/abs/1612.00796) [[code]](https://github.com/Minhchuyentoancbn/Continual-Learning/tree/main/EWC) [[code reference]](https://github.com/moskomule/ewc.pytorch)
+2. 2017 - ICML - SI - Continual Learning Through Synaptic Intelligence [[paper]](https://arxiv.org/abs/1703.04200) [[code]](https://github.com/Minhchuyentoancbn/Continual-Learning/tree/master/SI) [[code reference]](https://github.com/GT-RIPL/Continual-Learning-Benchmark)
