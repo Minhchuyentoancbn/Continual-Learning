@@ -92,7 +92,7 @@ class L2(NormalNN):
             task_param[n] = p.clone().detach()
 
         # 3. Calculate the importance of weights for current task
-        importance = self.calculate_importances(train_loader)
+        importance = self.calculate_importance(train_loader)
 
        # Save the weight and importance of weights of current task
         self.task_count += 1
@@ -384,7 +384,7 @@ class SI(L2):
         return loss.detach(), out
 
 
-    def calculate_importances(self, dataloader):
+    def calculate_importance(self, dataloader):
         """
         Calculate the importance of each parameter.
 
