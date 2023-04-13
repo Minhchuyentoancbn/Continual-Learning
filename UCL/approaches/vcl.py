@@ -95,7 +95,7 @@ class Approach:
         self.lr = lr
         self.lr_factor = lr_factor
         self.lr_patience = lr_patience
-        self.lr_min = lr / (lr_factor ** 5)
+        self.lr_min = 1e-6
 
         # Set the optimizer
         self.optimizer = self._get_optimizer()
