@@ -18,7 +18,7 @@ sys.path.append('..')
 
 class Approach:
     """
-    UCL approach
+    VCL approach
     """
 
     def __init__(self,
@@ -88,14 +88,14 @@ class Approach:
         self.iteration = 0  # number of iterations the model has been trained for
         self.args = args
         self.split = split
-        self.beta = args['beta']
+        self.num_sample = args['num_sample']  # number of time to sample weights
         # self.drop = [20, 40, 60, 75, 90]
 
         # Set the learning rate
         self.lr = lr
         self.lr_factor = lr_factor
         self.lr_patience = lr_patience
-        self.lr_min = 1e-6
+        self.lr_min = lr / (lr_factor ** 5)
 
         # Set the optimizer
         self.optimizer = self._get_optimizer()
@@ -103,7 +103,7 @@ class Approach:
         if len(args['parameter']) >= 1:
             params = args['parameter'].split(',')
             print('Setting parameters to', params)
-            self.lamb = float(params[0])
+            self.num_sample = int(params[0])
 
         return
         
@@ -137,6 +137,7 @@ class Approach:
         Parameters
         ----------
         t: int
+            The current task
 
         X_train : torch.Tensor
             The training data
@@ -224,8 +225,7 @@ class Approach:
 
             if stop:
                 break
-            
-            
+
         # Restore best
         set_model(self.model, best_model)
         self.model_old = deepcopy(self.model)
@@ -272,12 +272,19 @@ class Approach:
             # Forward pass
             minibatch_size = len(targets)
 
-            if self.split:
-                output = F.log_softmax(self.model.forward(images, sample=True)[t], dim=1)
-            else:
-                output = self.model.forward(images, sample=True)
+            # Sample weights to calulate the negative log-likelihood loss
+            sum_sample_loss = 0
 
-            loss = F.nll_loss(output, targets, reduction='sum')
+            for _ in range(self.num_sample):
+                if self.split:
+                    output = F.log_softmax(self.model.forward(images, sample=True)[t], dim=1)
+                else:
+                    output = self.model.forward(images, sample=True)
+
+                sample_loss = F.nll_loss(output, targets, reduction='sum')
+                sum_sample_loss += sample_loss
+
+            loss = sum_sample_loss / self.num_sample
             loss = self.custom_regularization(self.model_old, self.model, minibatch_size, loss)
 
             # Backward and optimize
@@ -374,25 +381,15 @@ class Approach:
             The loss with regularization
         """
         sigma_weight_reg_sum = 0
-        sigma_weight_normal_reg_sum = 0
         mu_weight_reg_sum = 0
         mu_bias_reg_sum = 0
-        L1_mu_weight_reg_sum = 0
-        L1_mu_bias_reg_sum = 0
 
         # Regularization coefficient
-        alpha = self.args['alpha']
+        alpha = 0  # First task then no regularization
         if self.saved:  # If the model is saved
             alpha = 1
 
-        if self.args['conv_net']:
-            if self.args['experiment'] == 'omiglot':
-                prev_weight_strength = nn.Parameter(torch.Tensor(1, 1, 1, 1).fill_(0))
-            else:
-                prev_weight_strength = nn.Parameter(torch.Tensor(3, 1, 1, 1).fill_(0))
-        else:
-            prev_weight_strength = nn.Parameter(torch.Tensor(28 * 28, 1).fill_(0))
-
+        # Loop over the layers
         for (_, save_layer), (_, train_layer) in zip(model_old.named_children(), model.named_children()):
             if not isinstance(train_layer, BayesianLinear) and not isinstance(train_layer, BayesianConv2d):
                 continue
@@ -403,72 +400,39 @@ class Approach:
             save_weight_mu = save_layer.weight_mu  
             save_bias = save_layer.bias
 
-            fan_in, fan_out = _calculate_fan_in_and_fan_out(train_weight_mu)
-
             train_weight_sigma = torch.log1p(torch.exp(train_layer.weight_rho))  # sigma(l)(t)
             save_weight_sigma = torch.log1p(torch.exp(save_layer.weight_rho))  # sigma(l)(t-1)
 
-            if isinstance(train_layer, BayesianLinear):
-                std_init = math.sqrt((2 / fan_in) * self.args['ratio'])
-            elif isinstance(train_layer, BayesianConv2d):
-                std_init = math.sqrt((2 / fan_out) * self.args['ratio'])
-
-            save_weight_strength = std_init / save_weight_sigma  # sigma_init(l) / sigma(l)(t-1)
+            save_weight_strength = 1 / save_weight_sigma  # 1 / sigma(l)(t-1)
 
             # Reshape the strength
             if len(save_weight_mu.shape) == 4:  # Convolutional layer
                 out_features, in_features, _, _ = save_weight_mu.shape
-                curr_strength = save_weight_strength.expand(out_features, in_features, 1, 1)
-                prev_strength = prev_weight_strength.permute(1, 0, 2, 3).expand(out_features, in_features, 1, 1)
+                L2_strength = save_weight_strength.expand(out_features, in_features, 1, 1)
             else:  # Linear layer
                 out_features, in_features = save_weight_mu.shape
-                curr_strength = save_weight_strength.expand(out_features,in_features)
-                if len(prev_weight_strength.shape) == 4:
-                    feature_size = in_features // (prev_weight_strength.shape[0])
-                    prev_weight_strength = prev_weight_strength.reshape(prev_weight_strength.shape[0], -1)
-                    prev_weight_strength = prev_weight_strength.expand(prev_weight_strength.shape[0], feature_size)
-                    prev_weight_strength = prev_weight_strength.reshape(-1, 1)
-                prev_strength = prev_weight_strength.permute(1, 0).expand(out_features,in_features)
-
-        
-            L2_strength = torch.max(curr_strength, prev_strength)  # lambda matrix
+                L2_strength = save_weight_strength.expand(out_features,in_features)
+            
             bias_strength = torch.squeeze(save_weight_strength)
-
-            L1_sigma = save_weight_sigma
-            bias_sigma = torch.squeeze(save_weight_sigma)
-            
-            # Update the previous weight strength
-            prev_weight_strength = save_weight_strength
-            
+        
             # Calculate the L2-regularization of term(a)
             mu_weight_reg = (L2_strength * (train_weight_mu - save_weight_mu)).norm(2) ** 2
             mu_bias_reg = (bias_strength * (train_bias - save_bias)).norm(2) ** 2
-            
-            # Calculate the L1-regularization of term(a)
-            L1_mu_weight_reg = (torch.div(save_weight_mu ** 2, L1_sigma ** 2) * (train_weight_mu - save_weight_mu)).norm(1)
-            L1_mu_bias_reg = (torch.div(save_bias ** 2, bias_sigma ** 2) * (train_bias - save_bias)).norm(1)
-            L1_mu_weight_reg = L1_mu_weight_reg * (std_init ** 2)
-            L1_mu_bias_reg = L1_mu_bias_reg * (std_init ** 2)
+
+            # Sum the regularization term(a)
+            mu_weight_reg_sum = mu_weight_reg_sum + mu_weight_reg
+            mu_bias_reg_sum = mu_bias_reg_sum + mu_bias_reg
             
             # Calculate the regularization of term(b)
             weight_sigma = (train_weight_sigma ** 2 / save_weight_sigma ** 2)  # sigma(l)(t)^2 / sigma(l)(t-1)^2
-            normal_weight_sigma = train_weight_sigma ** 2  # sigma(l)(t)^2
-            
             sigma_weight_reg_sum = sigma_weight_reg_sum + (weight_sigma - torch.log(weight_sigma)).sum()
-            sigma_weight_normal_reg_sum = sigma_weight_normal_reg_sum + (normal_weight_sigma - torch.log(normal_weight_sigma)).sum()
-            
-            mu_weight_reg_sum = mu_weight_reg_sum + mu_weight_reg
-            mu_bias_reg_sum = mu_bias_reg_sum + mu_bias_reg
-            L1_mu_weight_reg_sum = L1_mu_weight_reg_sum + L1_mu_weight_reg
-            L1_mu_bias_reg_sum = L1_mu_bias_reg_sum + L1_mu_bias_reg
+
             
         # elbo loss
         loss = loss / minibatch_size
         # L2 loss
         loss = loss + alpha * (mu_weight_reg_sum + mu_bias_reg_sum) / (2 * minibatch_size)
-        # L1 loss
-        loss = loss + self.saved * (L1_mu_weight_reg_sum + L1_mu_bias_reg_sum) / (minibatch_size)
         # sigma regularization
-        loss = loss + self.beta * (sigma_weight_reg_sum + sigma_weight_normal_reg_sum) / (2 * minibatch_size)
+        loss = loss + alpha * sigma_weight_reg_sum / (2 * minibatch_size)
             
         return loss
