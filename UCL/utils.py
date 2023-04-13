@@ -395,8 +395,8 @@ def set_req_grad(layer: nn.Module, req_grad: bool):
     return
 
 
-def clip_relavance_norm(parameters: Iterable[torch.Tensor] | torch.Tensor, 
-                        max_norm: float | int, norm_type: float | int = 2) -> float:
+def clip_relavance_norm(parameters: Iterable[torch.Tensor], 
+                        max_norm: float, norm_type: float = 2) -> float:
     """
     Clip the gradient norm of an iterable of parameters.
 
@@ -405,13 +405,13 @@ def clip_relavance_norm(parameters: Iterable[torch.Tensor] | torch.Tensor,
 
     Parameters
     ----------
-    parameters : Iterable[torch.Tensor] | torch.Tensor
+    parameters : Iterable[torch.Tensor]
         Iterable of parameters to clip.
 
-    max_norm : float | int
+    max_norm : float
         Max norm of the gradients.
 
-    norm_type : float | int (default=2)
+    norm_type : float(default=2)
         Type of the used p-norm. Can be ``'inf'`` for infinity norm.
     
     Returns
