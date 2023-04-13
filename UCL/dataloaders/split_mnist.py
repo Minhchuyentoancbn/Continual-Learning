@@ -75,7 +75,7 @@ def get(tasknum = 5):
         
     for t in range(tasknum):
         data[t]['valid'] = {}
-        data[t]['valid']['x'] = data[t]['train']['x'].clone()
+        data[t]['valid']['X'] = data[t]['train']['X'].clone()
         data[t]['valid']['y'] = data[t]['train']['y'].clone()
 
     # Others
