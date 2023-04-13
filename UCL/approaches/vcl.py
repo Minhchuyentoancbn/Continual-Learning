@@ -400,10 +400,17 @@ class Approach:
             save_weight_mu = save_layer.weight_mu  
             save_bias = save_layer.bias
 
+            fan_in, fan_out = _calculate_fan_in_and_fan_out(train_weight_mu)
+
             train_weight_sigma = torch.log1p(torch.exp(train_layer.weight_rho))  # sigma(l)(t)
             save_weight_sigma = torch.log1p(torch.exp(save_layer.weight_rho))  # sigma(l)(t-1)
 
-            save_weight_strength = 1 / save_weight_sigma  # 1 / sigma(l)(t-1)
+            if isinstance(train_layer, BayesianLinear):
+                std_init = math.sqrt((2 / fan_in) * self.args['ratio'])
+            elif isinstance(train_layer, BayesianConv2d):
+                std_init = math.sqrt((2 / fan_out) * self.args['ratio'])
+
+            save_weight_strength = std_init / save_weight_sigma  # 1 / sigma(l)(t-1)
 
             # Reshape the strength
             if len(save_weight_mu.shape) == 4:  # Convolutional layer
