@@ -202,7 +202,7 @@ class BayesianConv2d(_BayesianConvNd):
     Bayesian convolutional layer.
     """
     def __init__(self, in_channels: int, out_channels: int, kernel_size,
-                 stride=1, padding=0, dilation=0,
+                 stride=1, padding=0, dilation=1,
                  groups: int = 1, bias: bool = True, ratio: float=0.25):
         """
         Parameters
