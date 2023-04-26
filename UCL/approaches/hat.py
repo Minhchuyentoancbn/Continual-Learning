@@ -272,7 +272,7 @@ class Approach:
             # Forward pass
             output, masks = self.model(task, images, s)
             if self.split:
-                output = self.model(images)[t]
+                output = output[t]
 
             loss, _ = self.criterion(output, targets, masks)
 
@@ -350,7 +350,7 @@ class Approach:
 
                 output, masks = self.model(task, images, self.smax)
                 if self.split:
-                    output = self.model(images)[t]
+                    output = output[t]
 
                 loss, reg = self.criterion(output, targets, masks)
                 acc = (output.max(1)[1] == targets).sum().item()
