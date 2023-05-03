@@ -257,10 +257,11 @@ for iteration in range(int(100 / nb_cl)):
             # Collect data in the feature space for each class
             with torch.no_grad():
                 mapped_prototypes = network(prototypes[iteration2 * nb_cl + iter_dico].float())[1].cpu().numpy()
+                mapped_prototypes2 = network(prototypes[iteration2 * nb_cl + iter_dico].flip(-1).float())[1].cpu().numpy()
             D = mapped_prototypes.T
             D = D / np.linalg.norm(D, axis=0)
             # Flipped version also
-            mapped_prototypes2 = network(prototypes[iteration2 * nb_cl + iter_dico].flip(-1).float())[1].cpu().numpy()
+            
             D2 = mapped_prototypes2.T
             D2 = D2 / np.linalg.norm(D2, axis=0)
 
