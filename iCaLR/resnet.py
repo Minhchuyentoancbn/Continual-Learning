@@ -86,7 +86,7 @@ class ResNet(nn.Module):
         out = F.avg_pool2d(out, out.size()[3])
         features = out.view(out.size(0), -1)
         out = self.linear(features)
-        out = F.sigmoid(out)
+        out = torch.sigmoid(out)
         return out, features
         
 
