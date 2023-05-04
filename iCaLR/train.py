@@ -77,7 +77,7 @@ alpha_dr_herding  = np.zeros((100 // nb_cl, dictionary_size, nb_cl), np.float32)
 # because we want to compare our method with the theoretical case where all the training samples are stored
 prototypes = torch.zeros(100, dictionary_size, X_train_total.shape[1], X_train_total.shape[2], X_train_total.shape[3])
 for orde in range(100):
-    prototypes[orde, :, :, :, :] = X_train_total[y_train_total == orde]
+    prototypes[orde, :, :, :, :] = X_train_total[y_train_total == order[orde]]
 # prototypes = prototypes.to(device)
 
 with torch.autograd.set_detect_anomaly(True):
@@ -148,15 +148,16 @@ with torch.autograd.set_detect_anomaly(True):
                 loss += l2_reg * wght_decay
 
                 train_err += loss.item()
-                optimizer.zero_grad()
-                loss.backward()
 
                 # Distillation loss (for previous classes)
                 if iteration > 0:
                     with torch.no_grad():
                         prediction_old = network_old(inputs)[0]
-                    targets[:, old_cl] = prediction_old[:, old_cl]
-                    distillation_loss  = bce_loss(outputs, targets)
+                    old_targets = torch.zeros(inputs.shape[0], 100, dtype=torch.float32)
+                    old_targets[range(len(targets_prep)), targets_prep.long()] = 1
+                    old_targets = old_targets.to(device)
+                    old_targets[:, old_cl] = prediction_old[:, old_cl]
+                    distillation_loss  = bce_loss(outputs, old_targets)
 
                     # L2-regularization loss
                     # NOTE: I don't know whether it is necessary to add the L2-regularization loss to the distillation loss
@@ -164,8 +165,10 @@ with torch.autograd.set_detect_anomaly(True):
                     for param in network.parameters():
                         l2_reg_distill += torch.norm(param) ** 2
                     distillation_loss += l2_reg_distill * wght_decay
-                    distillation_loss.backward()
+                    loss += distillation_loss
 
+                optimizer.zero_grad()
+                loss.backward()
                 optimizer.step()
 
                 if train_batches % 100 == 0:
