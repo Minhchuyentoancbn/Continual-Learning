@@ -7,6 +7,10 @@ import torch.optim as optim
 from torchvision.datasets import CIFAR100
 from torchvision import transforms
 
+# Seed everything
+torch.manual_seed(42)
+torch.cuda.manual_seed(42)
+np.random.seed(42)
 
 def load_data(samples_per_class_val: int, seed: int = 42):
     """

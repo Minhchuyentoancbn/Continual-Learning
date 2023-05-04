@@ -5,6 +5,11 @@ import torch.nn.init as init
 
 from torch.autograd import Variable
 
+# Seed everything
+torch.manual_seed(42)
+torch.cuda.manual_seed(42)
+
+
 def _weights_init(m):
     classname = m.__class__.__name__
     #print(classname)
