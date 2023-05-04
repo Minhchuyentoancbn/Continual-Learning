@@ -78,7 +78,7 @@ alpha_dr_herding  = np.zeros((100 // nb_cl, dictionary_size, nb_cl), np.float32)
 prototypes = torch.zeros(100, dictionary_size, X_train_total.shape[1], X_train_total.shape[2], X_train_total.shape[3])
 for orde in range(100):
     prototypes[orde, :, :, :, :] = X_train_total[y_train_total == orde]
-prototypes = prototypes.to(device)
+# prototypes = prototypes.to(device)
 
 # Iterate through each group
 for iteration in range(int(100 / nb_cl)):
@@ -105,8 +105,8 @@ for iteration in range(int(100 / nb_cl)):
 
     # Add the stored exemplars to the training data
     if iteration > 0:
-        X_protoset = torch.cat(X_protoset_cumuls).to(device)
-        y_protoset = torch.cat(y_protoset_cumuls).to(device)
+        X_protoset = torch.cat(X_protoset_cumuls)
+        y_protoset = torch.cat(y_protoset_cumuls)
         X_train    = torch.cat((X_train, X_protoset))
         y_train    = torch.cat((y_train, y_protoset))
 
@@ -187,6 +187,7 @@ for iteration in range(int(100 / nb_cl)):
 
                 outputs, intermeds = network(inputs)
                 outputs = outputs.cpu()
+                intermeds = intermeds.cpu()
                 val_err += bce_loss(outputs, targets).item()  # Classification loss (only for the new classes)
                 
                 # Top-1 accuracy
