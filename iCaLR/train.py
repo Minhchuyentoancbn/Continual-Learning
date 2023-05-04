@@ -301,12 +301,9 @@ for iteration in range(int(100 / nb_cl)):
             sqd = cdist(class_means.T, features, 'sqeuclidean')
             score_icarl = (-sqd).T
 
-            stat_icarl.append(np.mean(np.argmax(score_icarl, axis=1) == targets_prep.numpy()))
+            stat_icarl += ([ll in best for ll, best in zip(targets_prep.astype('int32'), np.argsort(score_icarl, axis=1)[:, -1:])])
         
     print('  cumulative accuracy: \t\t\t{:.2f} %'.format(np.mean(stat_icarl) * 100))
     top1_acc_list_cumul[iteration] = np.mean(stat_icarl) * 100
     
-    network = network.cpu()
-
-    # Empty the cache
-    torch.cuda.empty_cache()
+torch.cuda.empty_cache()
