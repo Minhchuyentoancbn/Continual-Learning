@@ -1,5 +1,3 @@
-import sys
-import os
 import time
 import copy
 import numpy as np
@@ -15,15 +13,15 @@ import torch.optim as optim
 
 # Hyperparameters Setting
 batch_size = 128
-nb_val = 0  # Number of validation samples per class
-nb_cl = 10  # Number of classes per group
-nb_protos = 20  # Number of prototypes per class at the end: total protoset memory/ total number of classes
-epochs = 70
-lr_old = 2.0  # Initial learning rate
-lr_strat = [49, 63]  # Epochs where learning rate gets decreased
-lr_factor = 5.0  # Learning rate decrease factor
-wght_decay = 1e-5  # Weight Decay
-device = 'gpu'
+nb_val     = 0         # Number of validation samples per class
+nb_cl      = 10        # Number of classes per group
+nb_protos  = 20        # Number of prototypes per class at the end: total protoset memory/ total number of classes
+epochs     = 70
+lr_old     = 2.0       # Initial learning rate
+lr_strat   = [49, 63]  # Epochs where learning rate gets decreased
+lr_factor  = 5.0       # Learning rate decrease factor
+wght_decay = 1e-5      # Weight Decay
+device     = 'gpu'
 
 
 # Seed everything
@@ -51,18 +49,19 @@ np.random.shuffle(order)
 np.save('order', order)
 
 # Initialization
-dictionary_size = 500 - nb_val
-top1_acc_list_cumul = np.zeros((int(100 / nb_cl),))
+dictionary_size     = 500 - nb_val
+top1_acc_list_cumul = np.zeros((int(100 / nb_cl), ))
 
+print()
 print('Starting Task Incremental Learning...')
 
 # Build the neural network
-device = torch.device("cuda:0" if torch.cuda.is_available() and device=='gpu' else "cpu")
-network = resnet32().to(device)
+device    = torch.device("cuda:0" if torch.cuda.is_available() and device=='gpu' else "cpu")
+network   = resnet32().to(device)
 optimizer = optim.SGD(network.parameters(), lr=lr_old, momentum=0.9)
 scheduler = optim.lr_scheduler.MultiStepLR(optimizer, milestones=lr_strat, gamma=1.0 / lr_factor)
-ce_loss = nn.CrossEntropyLoss()
-bce_loss = nn.BCELoss()
+ce_loss   = nn.CrossEntropyLoss()
+bce_loss  = nn.BCELoss()
 
 # Initialization of the variables
 X_valid_cumuls    = []
@@ -87,8 +86,8 @@ for iteration in range(int(100 / nb_cl)):
     np.save('top1_acc_list_cumul_icarl_cl' + str(nb_cl), top1_acc_list_cumul)
 
     # Prepare the training data for the current batch of classes
-    actual_cl        = order[range(iteration*nb_cl, (iteration + 1)*nb_cl)]
-    old_cl           = order[range(0, iteration*nb_cl)]
+    actual_cl        = order[range(iteration * nb_cl, (iteration + 1) * nb_cl)]
+    old_cl           = order[range(0, iteration * nb_cl)]
     indices_train_10 = np.isin(y_train_total, actual_cl)
     indices_test_10  = np.isin(y_valid_total, actual_cl)
     X_train          = X_train_total[indices_train_10]
@@ -114,6 +113,7 @@ for iteration in range(int(100 / nb_cl)):
     # The training loop
     print()
     print(f'Batch of classes number {iteration + 1} arrives ...')
+
     for epoch in range(epochs):
         # Shuffle the training data
         train_indices = np.arange(len(X_train))
@@ -123,13 +123,13 @@ for iteration in range(int(100 / nb_cl)):
 
         # In each epoch, we do a full pass over the training data:
         train_batches = 0
-        train_err = 0
-        start_time = time.time()
+        train_err     = 0
+        start_time    = time.time()
         
         network.train()
         for batch in iterate_minibatches(X_train, y_train, batch_size, shuffle=True, augment=True):
             inputs, targets_prep = batch
-            inputs  = inputs.to(device)
+            inputs = inputs.to(device)
             targets = torch.zeros(inputs.shape[0], 100, dtype=torch.float32)
             targets[range(len(targets_prep)), targets_prep.long()] = 1
             targets = targets.to(device)
@@ -177,9 +177,9 @@ for iteration in range(int(100 / nb_cl)):
         top1_acc    = 0
         val_batches = 0
         network.eval()
+
         with torch.no_grad():
             for batch in iterate_minibatches(X_valid, y_valid, min(500, len(X_valid)), shuffle=False):
-
                 inputs, targets_prep = batch
                 inputs  = inputs.to(device)
                 targets = torch.zeros(inputs.shape[0], 100, dtype=torch.float32)
@@ -195,8 +195,8 @@ for iteration in range(int(100 / nb_cl)):
 
                 val_batches += 1
 
-        top1_acc /= val_batches
-        val_err /= val_batches
+        top1_acc  /= val_batches
+        val_err   /= val_batches
         train_err /= train_batches
         print(f'Batch of classes {iteration + 1} out of {int(100 / nb_cl)} batches')
         print('Epoch {} took {:.2f}s'.format(epoch + 1, time.time() - start_time))
@@ -204,50 +204,49 @@ for iteration in range(int(100 / nb_cl)):
         print('  validation loss (in-iteration): \t{:.6f}'.format(val_err))
         print('  validation accuracy: \t\t\t{:.2f} %'.format(top1_acc * 100))
 
-
+    # Duplicate current network to distill later
     if iteration == 0:
-        # Duplicate current network
         network_old = resnet32().to(device)
-        network_old.load_state_dict(copy.deepcopy(network.state_dict()))
-
+    
+    network_old.load_state_dict(copy.deepcopy(network.state_dict()))
     # Save the network
     torch.save(network.state_dict(), 'network' + str(iteration + 1) + '_of_' + str(int(100 / nb_cl)) + '.pt')
 
-
     # Examplars selection
-    nb_protos_cl = int(np.ceil(nb_protos * 100.0 / nb_cl / (iteration + 1)))
+    nb_protos_cl = int(np.ceil(nb_protos * 100.0 / nb_cl / (iteration + 1)))  # Number of exemplars per class
 
     # Herding
     print('Updating exemplar set...')
     network.eval()
     
+    # Compute rank of the potential exemplars for each class of the current class batch
     for iter_dico in range(nb_cl):
         # Possible exemplars in the feature space and projected on the L2 sphere
         with torch.no_grad():
-            mapped_prototypes = network(prototypes[iteration * nb_cl + iter_dico].float())[1].cpu().numpy()
-        D = mapped_prototypes.T
-        D = D / np.linalg.norm(D, axis=0)
+            mapped_prototypes = network(prototypes[iteration * nb_cl + iter_dico].float())[1].cpu().numpy()  # Get the feature map of the prototypes of each class
+        D = mapped_prototypes.T  # (K x N)
+        D = D / np.linalg.norm(D, axis=0)  # L2 normalization
 
         # Herding procedure : ranking of the potential exemplars
-        mu = np.mean(D, axis=1)
-        alpha_dr_herding[iteration, :, iter_dico] = 0.0
+        mu = np.mean(D, axis=1)  # (K, )
+        alpha_dr_herding[iteration, :, iter_dico] = 0  # Current class
         w_t = mu
         iter_herding = 0
         iter_herding_eff = 0
         while not(np.sum(alpha_dr_herding[iteration, :, iter_dico] != 0) == min(nb_protos_cl, 500)) and iter_herding_eff < 1000:  # Check that we have the right number of exemplars
-            tmp_t   = np.dot(w_t, D)
+            tmp_t = np.dot(w_t, D)  # (N, ), dot product with mean of the class
             ind_max = np.argmax(tmp_t)
             iter_herding_eff += 1
             if alpha_dr_herding[iteration, ind_max, iter_dico] == 0:
-                alpha_dr_herding[iteration,ind_max,iter_dico] = 1 + iter_herding
+                alpha_dr_herding[iteration, ind_max, iter_dico] = 1 + iter_herding  # Rank of the selected exemplars
                 iter_herding += 1
             w_t = w_t + mu - D[:,ind_max]
-    
+
     # Prepare the protoset
     X_protoset_cumuls = []
     y_protoset_cumuls = []
 
-    # Class means for iCaRL + Storing the selected exemplars in the protoset
+    # Class means for iCaRL + Storing the selected exemplars in the protoset for all seen classes
     print('Computing mean-of_exemplars and theoretical mean...')
     class_means = np.zeros((64, 100))
     for iteration2 in range(iteration + 1):
@@ -256,21 +255,22 @@ for iteration in range(int(100 / nb_cl)):
 
             # Collect data in the feature space for each class
             with torch.no_grad():
-                mapped_prototypes = network(prototypes[iteration2 * nb_cl + iter_dico].float())[1].cpu().numpy()
+                mapped_prototypes  = network(prototypes[iteration2 * nb_cl + iter_dico].float())[1].cpu().numpy()
                 mapped_prototypes2 = network(prototypes[iteration2 * nb_cl + iter_dico].flip(-1).float())[1].cpu().numpy()
-            D = mapped_prototypes.T
-            D = D / np.linalg.norm(D, axis=0)
-            # Flipped version also
-            
-            D2 = mapped_prototypes2.T
-            D2 = D2 / np.linalg.norm(D2, axis=0)
+            D = mapped_prototypes.T  # (K x N)
+            D = D / np.linalg.norm(D, axis=0)  # L2 normalization
+
+            # Flipped version also  
+            # NOTE: I don't know if this is necessary
+            D2 = mapped_prototypes2.T  # (K x N)
+            D2 = D2 / np.linalg.norm(D2, axis=0)  # L2 normalization
 
             # iCaRL
             alph = alpha_dr_herding[iteration2, :, iter_dico]
-            alph = (alph > 0) * (alph < nb_protos_cl + 1) * 1.
+            alph = (alph > 0) * (alph < nb_protos_cl + 1) * 1.  # Select the best protoset
             X_protoset_cumuls.append(prototypes[iteration2 * nb_cl + iter_dico, np.where(alph == 1)[0]])
             y_protoset_cumuls.append(current_cl[iter_dico] * torch.ones(len(np.where(alph == 1)[0])))
-            alph = alph / np.sum(alph)
+            alph = alph / np.sum(alph)  # Normalize the ranks
             class_means[:, current_cl[iter_dico]] = (np.dot(D, alph) + np.dot(D2, alph)) / 2
             class_means[:, current_cl[iter_dico]] /= np.linalg.norm(class_means[:, current_cl[iter_dico]])
 
@@ -292,7 +292,8 @@ for iteration in range(int(100 / nb_cl)):
             outputs = outputs.cpu()
             features = features.cpu()
             # Normalize
-            features = (features.t() / features.norm(dim=0)).t().numpy()
+            features = features / features.norm(dim=1)[:, None]
+            features = features.numpy()
 
             # Compute score for iCaRL
             sqd = cdist(class_means.T, features, 'sqeuclidean')
@@ -305,8 +306,6 @@ for iteration in range(int(100 / nb_cl)):
         top1_acc_list_cumul[iteration] = np.mean(stat_icarl) * 100
 
             
-
-
 
 torch.cuda.empty_cache()
 
