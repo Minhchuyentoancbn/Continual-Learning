@@ -58,8 +58,6 @@ print('Starting Task Incremental Learning...')
 # Build the neural network
 device    = torch.device("cuda:0" if torch.cuda.is_available() and device=='gpu' else "cpu")
 network   = resnet32()
-optimizer = optim.SGD(network.parameters(), lr=lr_old, momentum=0.9)
-scheduler = optim.lr_scheduler.MultiStepLR(optimizer, milestones=lr_strat, gamma=1.0 / lr_factor)
 ce_loss   = nn.CrossEntropyLoss()
 bce_loss  = nn.BCELoss()
 
@@ -84,7 +82,11 @@ for orde in range(100):
 
 # Iterate through each group
 for iteration in range(int(100 / nb_cl)):
-    network = network.to(device)
+    # Reset the optimizer at the beginning of each loop
+    optimizer = optim.SGD(network.parameters(), lr=lr_old, momentum=0.9)
+    scheduler = optim.lr_scheduler.MultiStepLR(optimizer, milestones=lr_strat, gamma=1.0 / lr_factor)
+
+
     # Save the results at each increment
     np.save('top1_acc_list_cumul_icarl_cl' + str(nb_cl), top1_acc_list_cumul)
 
