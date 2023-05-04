@@ -301,10 +301,8 @@ for iteration in range(int(100 / nb_cl)):
 
             stat_icarl.append(np.mean(np.argmax(score_icarl, axis=1) == targets_prep.numpy()))
         
-        print('  cumulative accuracy: \t\t\t{:.2f} %'.format(np.mean(stat_icarl) * 100))
-
-        top1_acc_list_cumul[iteration] = np.mean(stat_icarl) * 100
-
+    print('  cumulative accuracy: \t\t\t{:.2f} %'.format(np.mean(stat_icarl) * 100))
+    top1_acc_list_cumul[iteration] = np.mean(stat_icarl) * 100
             
 
 torch.cuda.empty_cache()
