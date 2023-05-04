@@ -140,7 +140,13 @@ for iteration in range(int(100 / nb_cl)):
             outputs, intermeds = network(inputs)
 
             # Classification loss (only for the new classes)
+            if iteration > 0:  # Distillation
+                with torch.no_grad():
+                    prediction_old = network_old(inputs)[0]
+                targets[:, old_cl] = prediction_old[:, old_cl]
+
             loss = bce_loss(outputs, targets)
+
             # Compute L2-regularization loss
             l2_reg = 0
             for param in network.parameters():
@@ -148,25 +154,6 @@ for iteration in range(int(100 / nb_cl)):
             loss += l2_reg * wght_decay
 
             train_err += loss.item()
-
-            # Distillation loss (for previous classes)
-            if iteration > 0:
-                with torch.no_grad():
-                    prediction_old = network_old(inputs)[0]
-                old_targets = torch.zeros(inputs.shape[0], 100, dtype=torch.float32)
-                old_targets[range(len(targets_prep)), targets_prep.long()] = 1
-                old_targets = old_targets.to(device)
-                old_targets[:, old_cl] = prediction_old[:, old_cl]
-                distillation_loss  = bce_loss(outputs, old_targets)
-
-                # L2-regularization loss
-                # NOTE: I don't know whether it is necessary to add the L2-regularization loss to the distillation loss
-                l2_reg_distill = 0
-                for param in network.parameters():
-                    l2_reg_distill += torch.norm(param) ** 2
-                distillation_loss += l2_reg_distill * wght_decay
-                loss += distillation_loss
-
             optimizer.zero_grad()
             loss.backward()
             optimizer.step()
