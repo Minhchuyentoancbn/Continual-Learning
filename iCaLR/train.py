@@ -148,6 +148,8 @@ with torch.autograd.set_detect_anomaly(True):
                 loss += l2_reg * wght_decay
 
                 train_err += loss.item()
+                optimizer.zero_grad()
+                loss.backward()
 
                 # Distillation loss (for previous classes)
                 if iteration > 0:
@@ -162,10 +164,8 @@ with torch.autograd.set_detect_anomaly(True):
                     for param in network.parameters():
                         l2_reg_distill += torch.norm(param) ** 2
                     distillation_loss += l2_reg_distill * wght_decay
-                    loss += distillation_loss
+                    distillation_loss.backward()
 
-                optimizer.zero_grad()
-                loss.backward()
                 optimizer.step()
 
                 if train_batches % 100 == 0:
@@ -292,9 +292,7 @@ with torch.autograd.set_detect_anomaly(True):
 
             network.eval()
             with torch.no_grad():
-                outputs, features = network(inputs)
-                outputs = outputs.cpu()
-                features = features.cpu()
+                features = network(inputs)[1].cpu()
                 # Normalize
                 features = features / features.norm(dim=1)[:, None]
                 features = features.numpy()
