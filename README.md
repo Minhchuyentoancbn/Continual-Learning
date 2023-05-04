@@ -13,5 +13,9 @@ Implementation of Continual Learning Algorithms and Papers
 1. 2018 - PMLR - HAT - Overcoming catastrophic forgetting with hard attention to the task [[paper]](https://arxiv.org/abs/1801.01423) [[code]](https://github.com/Minhchuyentoancbn/Continual-Learning/tree/master/UCL/approaches) [[code_reference]](https://github.com/joansj/hat)
 
 
+### Memory-based
+
+1. 2017 - CVPR - iCaRL - iCaRL: Incremental Classifier and Representation Learning [[paper]](https://arxiv.org/abs/1611.07725) [[code]](https://github.com/Minhchuyentoancbn/Continual-Learning/tree/master/iCaLR) [[code_reference]](https://github.com/srebuffi/iCaRL)
+
 __Note__
 - For UCL, please run split_CIFFAR10_100 before split_CIFFAR100.
