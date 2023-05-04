@@ -199,10 +199,10 @@ for iteration in range(int(100 / nb_cl)):
         val_err   /= val_batches
         train_err /= train_batches
         print(f'Batch of classes {iteration + 1} out of {int(100 / nb_cl)} batches')
-        print('Epoch {} took {:.2f}s'.format(epoch + 1, time.time() - start_time))
-        print('  training loss (in-iteration): \t{:.6f}'.format(train_err))
-        print('  validation loss (in-iteration): \t{:.6f}'.format(val_err))
-        print('  validation accuracy: \t\t\t{:.2f} %'.format(top1_acc * 100))
+        print('Epoch {} took {:.2f}s'.format(epoch + 1, time.time() - start_time), end='')
+        print('||  training loss (in-iteration): \t{:.6f}'.format(train_err), end='')
+        print('||  validation loss (in-iteration): \t{:.6f}'.format(val_err), end='')
+        print('||  validation accuracy: \t\t\t{:.2f} %'.format(top1_acc * 100))
 
     # Duplicate current network to distill later
     if iteration == 0:
