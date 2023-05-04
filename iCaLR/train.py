@@ -57,7 +57,7 @@ print('Starting Task Incremental Learning...')
 
 # Build the neural network
 device    = torch.device("cuda:0" if torch.cuda.is_available() and device=='gpu' else "cpu")
-network   = resnet32()
+network   = resnet32().to(device)
 ce_loss   = nn.CrossEntropyLoss()
 bce_loss  = nn.BCELoss()
 
