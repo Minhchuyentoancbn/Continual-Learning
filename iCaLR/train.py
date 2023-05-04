@@ -1,5 +1,6 @@
 import time
 import copy
+import os
 import numpy as np
 
 from scipy.spatial.distance import cdist
@@ -14,7 +15,7 @@ import torch.optim as optim
 # Hyperparameters Setting
 batch_size = 128
 nb_val     = 0         # Number of validation samples per class
-nb_cl      = 10        # Number of classes per group
+nb_cl      = 2        # Number of classes per group
 nb_protos  = 20        # Number of prototypes per class at the end: total protoset memory/ total number of classes
 epochs     = 70
 lr_old     = 2.0       # Initial learning rate
@@ -43,10 +44,13 @@ else:
     y_valid_total = data['y_test']
 
 
- # Select the order for the class learning 
-order = np.arange(100)
-np.random.shuffle(order)
-np.save('order', order)
+ # Select the order for the class learning
+if not os.path.exists('order.npy'):
+    order = np.arange(100)
+    np.random.shuffle(order)
+    np.save('order', order)
+else:
+    order = np.load('order.npy')
 
 # Initialization
 dictionary_size     = 500 - nb_val
@@ -206,7 +210,7 @@ for iteration in range(int(100 / nb_cl)):
     
     network_old.load_state_dict(copy.deepcopy(network.state_dict()))
     # Save the network
-    torch.save(network.state_dict(), 'network' + str(iteration + 1) + '_of_' + str(int(100 / nb_cl)) + '.pt')
+    torch.save(network.state_dict(), 'models/network' + str(iteration + 1) + '_of_' + str(int(100 / nb_cl)) + '.pt')
 
     # Examplars selection
     nb_protos_cl = int(np.ceil(nb_protos * 100.0 / nb_cl / (iteration + 1)))  # Number of exemplars per class
