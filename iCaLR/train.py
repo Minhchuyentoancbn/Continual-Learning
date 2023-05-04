@@ -57,7 +57,7 @@ print('Starting Task Incremental Learning...')
 
 # Build the neural network
 device    = torch.device("cuda:0" if torch.cuda.is_available() and device=='gpu' else "cpu")
-network   = resnet32().to(device)
+network   = resnet32()
 optimizer = optim.SGD(network.parameters(), lr=lr_old, momentum=0.9)
 scheduler = optim.lr_scheduler.MultiStepLR(optimizer, milestones=lr_strat, gamma=1.0 / lr_factor)
 ce_loss   = nn.CrossEntropyLoss()
@@ -82,6 +82,7 @@ for orde in range(100):
 
 # Iterate through each group
 for iteration in range(int(100 / nb_cl)):
+    network = network.to(device)
     # Save the results at each increment
     np.save('top1_acc_list_cumul_icarl_cl' + str(nb_cl), top1_acc_list_cumul)
 
@@ -224,7 +225,7 @@ for iteration in range(int(100 / nb_cl)):
     for iter_dico in range(nb_cl):
         # Possible exemplars in the feature space and projected on the L2 sphere
         with torch.no_grad():
-            mapped_prototypes = network(prototypes[iteration * nb_cl + iter_dico].float())[1].cpu().numpy()  # Get the feature map of the prototypes of each class
+            mapped_prototypes = network(prototypes[iteration * nb_cl + iter_dico].float().to(device))[1].cpu().numpy()  # Get the feature map of the prototypes of each class
         D = mapped_prototypes.T  # (K x N)
         D = D / np.linalg.norm(D, axis=0)  # L2 normalization
 
@@ -256,7 +257,7 @@ for iteration in range(int(100 / nb_cl)):
 
             # Collect data in the feature space for each class
             with torch.no_grad():
-                mapped_prototypes  = network(prototypes[iteration2 * nb_cl + iter_dico].float())[1].cpu().numpy()
+                mapped_prototypes  = network(prototypes[iteration2 * nb_cl + iter_dico].float().to(device))[1].cpu().numpy()
                 # mapped_prototypes2 = network(prototypes[iteration2 * nb_cl + iter_dico].flip(-1).float())[1].cpu().numpy()
             D = mapped_prototypes.T  # (K x N)
             D = D / np.linalg.norm(D, axis=0)  # L2 normalization
@@ -304,7 +305,8 @@ for iteration in range(int(100 / nb_cl)):
         
     print('  cumulative accuracy: \t\t\t{:.2f} %'.format(np.mean(stat_icarl) * 100))
     top1_acc_list_cumul[iteration] = np.mean(stat_icarl) * 100
-            
+    
+    network = network.cpu()
 
-torch.cuda.empty_cache()
-
+    # Empty the cache
+    torch.cuda.empty_cache()
