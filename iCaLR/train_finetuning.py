@@ -74,8 +74,6 @@ for iteration in range(int(100 / nb_cl)):
     optimizer = optim.SGD(network.parameters(), lr=lr_old, momentum=0.9)
     scheduler = optim.lr_scheduler.MultiStepLR(optimizer, milestones=lr_strat, gamma=1.0 / lr_factor)
 
-    # Save the results at each increment
-    np.save('top1_acc_list_cumul_finetuning_cl' + str(nb_cl), top1_acc_list_cumul)
 
     # Prepare the training data for the current batch of classes
     actual_cl        = order[range(iteration * nb_cl, (iteration + 1) * nb_cl)]
@@ -198,5 +196,8 @@ for iteration in range(int(100 / nb_cl)):
         
     print('  cumulative accuracy: \t\t\t{:.2f} %'.format(np.mean(stat_finetuning) * 100))
     top1_acc_list_cumul[iteration] = np.mean(stat_finetuning) * 100
+
+    # Save the results at each increment
+    np.save('top1_acc_list_cumul_finetuning_cl' + str(nb_cl), top1_acc_list_cumul)
     
 torch.cuda.empty_cache()

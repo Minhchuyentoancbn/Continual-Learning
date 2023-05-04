@@ -76,9 +76,6 @@ for iteration in range(int(100 / nb_cl)):
     scheduler = optim.lr_scheduler.MultiStepLR(optimizer, milestones=lr_strat, gamma=1.0 / lr_factor)
 
 
-    # Save the results at each increment
-    np.save('top1_acc_list_cumul_lwfmc_cl' + str(nb_cl), top1_acc_list_cumul)
-
     # Prepare the training data for the current batch of classes
     actual_cl        = order[range(iteration * nb_cl, (iteration + 1) * nb_cl)]
     old_cl           = order[range(0, iteration * nb_cl)]
@@ -210,5 +207,9 @@ for iteration in range(int(100 / nb_cl)):
         
     print('  cumulative accuracy: \t\t\t{:.2f} %'.format(np.mean(stat_lwfmc) * 100))
     top1_acc_list_cumul[iteration] = np.mean(stat_lwfmc) * 100
+
+
+    # Save the results at each increment
+    np.save('top1_acc_list_cumul_lwfmc_cl' + str(nb_cl), top1_acc_list_cumul)
     
 torch.cuda.empty_cache()
