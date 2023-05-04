@@ -1,5 +1,5 @@
 # Continual-Learning
-Implementation of Continual Learning Algorithms and Papers
+Implementation of Continual Learning Algorithms and Papers in Pytorch
 
 ### Regularization-based
 
