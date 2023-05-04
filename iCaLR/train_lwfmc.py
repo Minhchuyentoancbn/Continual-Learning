@@ -16,7 +16,6 @@ import torch.optim as optim
 batch_size = 128
 nb_val     = 0         # Number of validation samples per class
 nb_cl      = 10        # Number of classes per group
-nb_protos  = 20        # Number of prototypes per class at the end: total protoset memory/ total number of classes
 epochs     = 70
 lr_old     = 2.0       # Initial learning rate
 lr_strat   = [49, 63]  # Epochs where learning rate gets decreased
