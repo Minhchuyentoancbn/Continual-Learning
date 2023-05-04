@@ -105,8 +105,8 @@ for iteration in range(int(100 / nb_cl)):
 
     # Add the stored exemplars to the training data
     if iteration > 0:
-        X_protoset = torch.cat(X_protoset_cumuls)
-        y_protoset = torch.cat(y_protoset_cumuls)
+        X_protoset = torch.cat(X_protoset_cumuls).to(device)
+        y_protoset = torch.cat(y_protoset_cumuls).to(device)
         X_train    = torch.cat((X_train, X_protoset))
         y_train    = torch.cat((y_train, y_protoset))
 
@@ -256,14 +256,14 @@ for iteration in range(int(100 / nb_cl)):
             # Collect data in the feature space for each class
             with torch.no_grad():
                 mapped_prototypes  = network(prototypes[iteration2 * nb_cl + iter_dico].float())[1].cpu().numpy()
-                mapped_prototypes2 = network(prototypes[iteration2 * nb_cl + iter_dico].flip(-1).float())[1].cpu().numpy()
+                # mapped_prototypes2 = network(prototypes[iteration2 * nb_cl + iter_dico].flip(-1).float())[1].cpu().numpy()
             D = mapped_prototypes.T  # (K x N)
             D = D / np.linalg.norm(D, axis=0)  # L2 normalization
 
-            # Flipped version also  
-            # NOTE: I don't know if this is necessary
-            D2 = mapped_prototypes2.T  # (K x N)
-            D2 = D2 / np.linalg.norm(D2, axis=0)  # L2 normalization
+            # # Flipped version also  
+            # # NOTE: I don't know if this is necessary
+            # D2 = mapped_prototypes2.T  # (K x N)
+            # D2 = D2 / np.linalg.norm(D2, axis=0)  # L2 normalization
 
             # iCaRL
             alph = alpha_dr_herding[iteration2, :, iter_dico]
@@ -271,7 +271,7 @@ for iteration in range(int(100 / nb_cl)):
             X_protoset_cumuls.append(prototypes[iteration2 * nb_cl + iter_dico, np.where(alph == 1)[0]])
             y_protoset_cumuls.append(current_cl[iter_dico] * torch.ones(len(np.where(alph == 1)[0])))
             alph = alph / np.sum(alph)  # Normalize the ranks
-            class_means[:, current_cl[iter_dico]] = (np.dot(D, alph) + np.dot(D2, alph)) / 2
+            class_means[:, current_cl[iter_dico]] = np.dot(D, alph)  # (np.dot(D, alph) + np.dot(D2, alph)) / 2
             class_means[:, current_cl[iter_dico]] /= np.linalg.norm(class_means[:, current_cl[iter_dico]])
 
     np.save('cl_means', class_means)
