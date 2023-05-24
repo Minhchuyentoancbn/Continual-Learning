@@ -54,6 +54,35 @@ if __name__ == '__main__':
     if args.cuda:
         model.cuda()
 
+    # Compute accuracy at random initialization on all tasks
+    print('*' * 100)
+    print('Computing accuracy on all tasks...')
+    b = np.zeros(args.num_tasks)
+    for u in range(args.num_tasks):
+        model.eval()
+        running_corrects = 0
+        for i in range(0, data[u]['test']['X'].size(0), args.batch_size):
+            indices = range(i, i + args.batch_size)
+            batch_x, batch_y = data[u]['test']['X'][indices], data[u]['test']['y'][indices]
+            batch_x = batch_x.view(-1, size[1] * size[2])
+            if args.cuda:
+                batch_x, batch_y = batch_x.cuda(), batch_y.cuda()
+
+            with torch.no_grad():
+                ypred = model(batch_x, u)
+
+            _, preds = torch.max(ypred, 1)
+            running_corrects += torch.sum(preds == batch_y).item()
+
+        acc = running_corrects / data[u]['test']['X'].size(0)
+        print('Task {:2d} | Accuracy {:.2f}'.format(u, acc))
+        b[u] = acc
+
+    print('*' * 100)
+    # Save the results
+    np.savetxt('./results/' + args.model + '_init.txt', b, '%.4f')
+
+
     # Loop tasks
     acc = np.zeros((len(taskcla), len(taskcla)))
 
