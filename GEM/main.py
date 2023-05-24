@@ -2,7 +2,6 @@ import argparse
 import sys
 import random
 import time
-import datetime
 import os
 import numpy as np
 import importlib
@@ -68,6 +67,7 @@ if __name__ == '__main__':
         # Train
         model.train()
         for epoch in range(args.n_epochs):
+            start = time.time()
             # Train
             permutation = torch.randperm(data[t]['train']['X'].size(0))
             for i in range(0, data[t]['train']['X'].size(0), args.batch_size):
@@ -97,7 +97,8 @@ if __name__ == '__main__':
                 epoch_acc += torch.sum(preds == batch_y).item()
 
             epoch_acc /= data[t]['valid']['X'].size(0)
-            print('Epoch {:3d} | Accuracy {:.2f}'.format(epoch, epoch_acc))
+            end = time.time()
+            print('Epoch {:3d} | Accuracy {:.2f} | Time {:.2f}'.format(epoch, epoch_acc, end - start))
 
         print('End of training for task {:d}.'.format(t))
         print('*' * 100)
