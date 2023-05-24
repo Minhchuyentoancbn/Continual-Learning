@@ -66,7 +66,7 @@ class Net(nn.Module):
             self.old_task = t
 
         self.train()
-        self.opt.zero_grad()
+        self.zero_grad()
         output = self.forward(x, t)
         loss = self.loss(output, y)
         loss.backward()
