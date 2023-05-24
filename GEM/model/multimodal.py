@@ -46,21 +46,21 @@ class Net(nn.Module):
             # Dedicated input layers
             for _ in range(n_tasks):
                 self.input_layers.append(nn.Linear(n_inputs, hidden_size))
-                self.input_layers[-1].apply(reset_bias)
+                reset_bias(self.input_layers[-1])
 
             # Hidden layers
             self.hidden_layers.append(nn.ModuleList())
             for _ in range(self.num_layers):
                 self.hidden_layers[0].append(nn.Linear(hidden_size, hidden_size))
-                self.hidden_layers[0][0].apply(reset_bias)
+                reset_bias(self.hidden_layers[0][0])
 
             # Shared output layer
             self.output_layers.append(nn.Linear(hidden_size, n_outputs))
-            self.output_layers[-1].apply(reset_bias)
+            reset_bias(self.output_layers[-1])
         else:
             # No hidden layers
             self.input_layers.append(nn.Linear(n_inputs, hidden_size))
-            self.input_layers[-1].apply(reset_bias)
+            reset_bias(self.input_layers[-1])
 
         self.relu = nn.ReLU()
         self.soft = nn.LogSoftmax(dim=1)
