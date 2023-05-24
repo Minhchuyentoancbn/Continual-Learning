@@ -51,8 +51,8 @@ class Net(nn.Module):
             # Hidden layers
             self.hidden_layers.append(nn.ModuleList())
             for _ in range(self.num_layers):
-                self.hidden_layers[-1].append(nn.Linear(hidden_size, hidden_size))
-                self.hidden_layers[-1][-1].apply(reset_bias)
+                self.hidden_layers[0].append(nn.Linear(hidden_size, hidden_size))
+                self.hidden_layers[0][0].apply(reset_bias)
 
             # Shared output layer
             self.output_layers.append(nn.Linear(hidden_size, n_outputs))
@@ -86,7 +86,7 @@ class Net(nn.Module):
     
     def observe(self, x, t, y):
         self.train()
-        self.opt.zero_grad()
+        self.zero_grad()
         output = self.forward(x, t)
         loss = self.loss(output, y)
         loss.backward()
