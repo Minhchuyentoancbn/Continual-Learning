@@ -16,3 +16,7 @@ Implementation of Continual Learning Algorithms and Papers in Pytorch
 ### Memory-based
 
 1. 2017 - CVPR - iCaRL - iCaRL: Incremental Classifier and Representation Learning [[paper]](https://arxiv.org/abs/1611.07725) [[code]](https://github.com/Minhchuyentoancbn/Continual-Learning/tree/master/iCaLR) [[code_reference]](https://github.com/srebuffi/iCaRL)
+
+
+### Gradient-based
+1. 2017 - NIPS - GEM - Gradient episodic memory for continual learning [[paper]](https://arxiv.org/abs/1706.08840) [[code]](https://github.com/Minhchuyentoancbn/Continual-Learning/tree/master/GEM) [[code_reference]](https://github.com/facebookresearch/GradientEpisodicMemory)
