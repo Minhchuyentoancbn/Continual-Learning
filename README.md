@@ -1,4 +1,4 @@
-# All in One Continual Learning
+# All in One - Continual Learning
 Implementation of Continual Learning Algorithms and Papers in Pytorch
 
 ### Regularization-based
