@@ -18,9 +18,9 @@ class MLP(nn.Module):
         layers = []
 
         for i in range(len(sizes) - 1):
-            self.layers.append(nn.Linear(sizes[i], sizes[i + 1]))
+            layers.append(nn.Linear(sizes[i], sizes[i + 1]))
             if i < len(sizes) - 2:
-                self.layers.append(nn.ReLU())
+                layers.append(nn.ReLU())
 
         self.net = nn.Sequential(*layers)
         # Xavier initialization

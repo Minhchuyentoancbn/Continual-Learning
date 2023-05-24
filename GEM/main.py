@@ -24,7 +24,7 @@ def parse_arguments(argv):
     parser.add_argument('--num_tasks', type=int, default=20)
     parser.add_argument('--model', type=str, default='gem')
 
-    parser.add_argument('--n_epochs', type=int, default=100)
+    parser.add_argument('--n_epochs', type=int, default=1)
     parser.add_argument('--num_layers', type=int, default=2)
     parser.add_argument('--hidden_size', type=int, default=100)
     parser.add_argument('--batch_size', type=int, default=10)
@@ -32,11 +32,9 @@ def parse_arguments(argv):
 
     parser.add_argument('--finetune', type=bool, default=True)
 
-    parser.add_argument('--memory_strength', type=float, default=0.3)
-    parser.add_argument('--n_memories', type=int, default=256)
     parser.add_argument('--memory_strength', type=float, default=0.5)
     parser.add_argument('--n_memories', type=int, default=256)
-    # parser.add_argument('--samples_per_task', type=int, default=-1)
+    parser.add_argument('--samples_per_task', type=int, default=-1)
 
     parser.add_argument('--cuda', type=bool, default=False)
     parser.add_argument('--seed', type=int, default=0)
@@ -64,18 +62,22 @@ if __name__ == '__main__':
         print('Task {:2d} ({:s})'.format(t, data[t]['name']))
         print('*' * 100)
 
+        if args.samples_per_task < 0:
+            n = data[t]['train']['X'].size(0)
+        else:
+            n = min(args.samples_per_task, data[t]['train']['X'].size(0))
+        
         # Train
         model.train()
         for epoch in range(args.n_epochs):
             start = time.time()
             # Train
-            permutation = torch.randperm(data[t]['train']['X'].size(0))
-            for i in range(0, data[t]['train']['X'].size(0), args.batch_size):
-                model.train()
-                model.zero_grad()
-
+            N = data[t]['train']['X'].size(0)
+            permutation= torch.randperm(N)[:n]
+            for i in range(0, n, args.batch_size):
                 indices = permutation[i:i + args.batch_size]
                 batch_x, batch_y = data[t]['train']['X'][indices], data[t]['train']['y'][indices]
+                batch_x = batch_x.view(-1, size[1] * size[2])
                 if args.cuda:
                     batch_x, batch_y = batch_x.cuda(), batch_y.cuda()
 
@@ -87,6 +89,7 @@ if __name__ == '__main__':
             for i in range(0, data[t]['valid']['X'].size(0), args.batch_size):
                 indices = range(i, i + args.batch_size)
                 batch_x, batch_y = data[t]['valid']['X'][indices], data[t]['valid']['y'][indices]
+                batch_x = batch_x.view(-1, size[1] * size[2])
                 if args.cuda:
                     batch_x, batch_y = batch_x.cuda(), batch_y.cuda()
 
@@ -110,6 +113,7 @@ if __name__ == '__main__':
             for i in range(0, data[u]['test']['X'].size(0), args.batch_size):
                 indices = range(i, i + args.batch_size)
                 batch_x, batch_y = data[u]['test']['X'][indices], data[u]['test']['y'][indices]
+                batch_x = batch_x.view(-1, size[1] * size[2])
                 if args.cuda:
                     batch_x, batch_y = batch_x.cuda(), batch_y.cuda()
 
@@ -127,5 +131,5 @@ if __name__ == '__main__':
         print('*' * 100)
 
         # Save the results
-        np.save('results/' + args.model + '_acc.npy', acc)
+        np.savetxt('./results/' + args.model + '_acc.txt', acc, '%.4f')
 
