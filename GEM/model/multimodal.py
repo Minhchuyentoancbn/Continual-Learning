@@ -53,6 +53,10 @@ class Net(nn.Module):
             for _ in range(self.num_layers):
                 self.hidden_layers[-1].append(nn.Linear(hidden_size, hidden_size))
                 self.hidden_layers[-1][-1].apply(reset_bias)
+
+            # Shared output layer
+            self.output_layers.append(nn.Linear(hidden_size, n_outputs))
+            self.output_layers[-1].apply(reset_bias)
         else:
             # No hidden layers
             self.input_layers.append(nn.Linear(n_inputs, hidden_size))
